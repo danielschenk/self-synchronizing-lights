@@ -82,8 +82,8 @@ class Light(threading.Thread):
                 smokesignal.emit("sync")
             self._blink()
         else:
-            arbiting_timeout = random.random() / 100
-            if self._sync.wait(self.PERIOD / 2 + arbiting_timeout):
+            arbitration_timeout = random.random() / 100 + 0.005
+            if self._sync.wait(self.PERIOD / 2 + arbitration_timeout):
                 self._logger.debug("received sync")
                 self._blink()
             else:
@@ -97,7 +97,7 @@ class Light(threading.Thread):
                                       "but another light did in the meantime "
                                       "(collision avoidance)")
                 # compensate for extra delay, to stay in phase
-                self._blink(self.PERIOD / 2 - arbiting_timeout)
+                self._blink(self.PERIOD / 2 - arbitration_timeout)
         self._sync.clear()
 
     def _blink(self, shine_time=None):
