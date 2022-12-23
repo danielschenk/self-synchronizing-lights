@@ -1,1 +1,1 @@
-from . import light
+from .light import Light

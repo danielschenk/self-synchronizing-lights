@@ -11,18 +11,35 @@ class Light(threading.Thread):
 
     def __init__(self, id=None):
         super().__init__()
+        self.daemon = True
         self._sync = threading.Event()
         self._stop_flag = threading.Event()
+        self._lock = threading.Lock()
+        self._is_enabled = True
+        self._was_enabled = True
         if not id:
             id = self._generate_id()
         self._id = id
 
-        self._master = False
+        self._is_master = False
         self._is_on = False
 
         self._logger = logging.getLogger(f"light {self._id}")
 
         smokesignal.on("sync", self._on_sync)
+
+    def enable(self):
+        with self._lock:
+            self._is_enabled = True
+
+    def disable(self):
+        with self._lock:
+            self._is_enabled = False
+
+    @property
+    def is_enabled(self):
+        with self._lock:
+            return self._is_enabled
 
     @classmethod
     def _generate_id(cls):
@@ -35,36 +52,53 @@ class Light(threading.Thread):
 
     def run(self):
         while not self._stop_flag.is_set():
-            if self._master:
-                # signal shouldn't be set by anyone else - check anyway
-                # also, use this for timing the sync
-                if self._sync.wait(self.PERIOD / 2):
-                    self._logger.error("collision detected, degrading to slave")
-                    smokesignal.emit("master-collision-detected",
-                                     self._id)
-                    self._master = False
-                else:
-                    self._logger.debug("emitting sync")
-                    smokesignal.emit("sync")
+            with self._lock:
+                disable_now = False
+                enabled = self._is_enabled
+                if enabled != self._was_enabled:
+                    smokesignal.emit(f"{self.signal_name}-toggled")
+                    if not enabled:
+                        disable_now = True
+                self._was_enabled = enabled
+            if enabled:
+                self._cycle()
+            else:
+                if disable_now:
+                    self._is_master = False
+                    self.is_on = False
+                time.sleep(0.1)
+
+    def _cycle(self):
+        if self._is_master:
+            # signal shouldn't be set by anyone else - check anyway
+            # also, use this for timing the sync
+            if self._sync.wait(self.PERIOD / 2):
+                self._logger.error("collision detected, degrading to slave")
+                smokesignal.emit("master-collision-detected",
+                                 self._id)
+                self._is_master = False
+            else:
+                self._logger.debug("emitting sync")
+                smokesignal.emit("sync")
+            self._blink()
+        else:
+            arbiting_timeout = random.random() / 100
+            if self._sync.wait(self.PERIOD / 2 + arbiting_timeout):
+                self._logger.debug("received sync")
                 self._blink()
             else:
-                arbiting_timeout = random.random() / 100
-                if self._sync.wait(self.PERIOD / 2 + arbiting_timeout):
-                    self._logger.debug("received sync")
-                    self._blink()
+                self._logger.debug("timed out waiting for sync")
+                if not self._sync.is_set():
+                    self._logger.info("electing itself")
+                    self._is_master = True
+                    smokesignal.emit("sync")
                 else:
-                    self._logger.debug("timed out waiting for sync")
-                    if not self._sync.is_set():
-                        self._logger.info("electing itself")
-                        self._master = True
-                        smokesignal.emit("sync")
-                    else:
-                        self._logger.info("was about to elect itself, "
-                                          "but another light did in the meantime "
-                                          "(collision avoidance)")
-                    # compensate for extra delay, to stay in phase
-                    self._blink(self.PERIOD / 2 - arbiting_timeout)
-            self._sync.clear()
+                    self._logger.info("was about to elect itself, "
+                                      "but another light did in the meantime "
+                                      "(collision avoidance)")
+                # compensate for extra delay, to stay in phase
+                self._blink(self.PERIOD / 2 - arbiting_timeout)
+        self._sync.clear()
 
     def _blink(self, shine_time=None):
         self._logger.info("blinking")
@@ -83,6 +117,10 @@ class Light(threading.Thread):
     def is_on(self, state):
         self._is_on = state
         smokesignal.emit(self.signal_name, state)
+
+    @property
+    def is_master(self) -> bool:
+        return self._is_master
 
     @property
     def signal_name(self):
