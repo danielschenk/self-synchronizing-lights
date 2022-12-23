@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+import tkinter as tk
 from tkinter import Tk, ttk
 import logging
+import argparse
 import lightlib
 import smokesignal
 
@@ -61,13 +63,38 @@ class LightWidget:
             self._light.stop()
 
 
+class TextBoxLoggingHandler(logging.Handler):
+    def __init__(self, widget: tk.Text) -> None:
+        super().__init__()
+        self._widget = widget
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self._widget.insert(tk.END, self.format(record) + "\n")
+
+
 def main():
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug")
+    args = parser.parse_args()
 
     root = Tk()
+    root_logger = logging.getLogger()
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s %(levelname)8s %(name)s: %(message)s")
+    handler.setFormatter(formatter)
+    root_logger.addHandler(handler)
+    root_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+
+    frm_bottom = ttk.Frame(root, padding=10)
+    frm_bottom.grid(column=0, row=1)
+    log = tk.Text(root)
+    log.grid()
+    gui_handler = TextBoxLoggingHandler(log)
+    gui_handler.setFormatter(formatter)
+    root_logger.addHandler(gui_handler)
+
     frm = ttk.Frame(root, padding=10)
-    frm.grid()
+    frm.grid(column=0, row=0)
     light_widgets = []
     for row in range(3):
         for column in range(3):
