@@ -13,12 +13,11 @@ class LightWidget:
         self._label = ttk.Label(self.frame, text=light.signal_name)
         self._label.grid(column=0, row=0)
 
-        self._indicator = ttk.Button(self.frame)
+        self._indicator = ttk.Label(self.frame)
         self._indicator.grid(column=0, row=1)
 
-        self._role_indicator = ttk.Button(self.frame)
+        self._role_indicator = ttk.Label(self.frame)
         self._role_indicator.grid(column=0, row=2)
-        # self._default_btn_bg = self._role_indicator["background"]
 
         self._toggle_button = ttk.Button(self.frame, text="disable", command=self._toggle)
         self._toggle_button.grid(column=0, row=3)
@@ -29,8 +28,8 @@ class LightWidget:
 
     def _toggle(self):
         self._toggle_button["text"] = "⏳"
+        self._toggle_button["state"] = "disabled"
         if self._light.is_enabled:
-            self._toggle_button["state"] = "disabled"
             smokesignal.once(f"{self._light.signal_name}-toggled", self._on_disabled)
             self._light.disable()
         else:
@@ -48,18 +47,14 @@ class LightWidget:
 
     def _on_light_state_change(self, state):
         if state:
-            self._indicator["text"] = "ON"
-            # self._indicator["background"] = "yellow"
+            self._indicator["text"] = "🔴"
         else:
-            self._indicator["text"] = "OFF"
-            # self._indicator["background"] = "#8B8000"
+            self._indicator["text"] = "⚪️"
 
         if self._light.is_master:
-            self._role_indicator["text"] = "MASTER"
-            # self._role_indicator["background"] = "red"
+            self._role_indicator["text"] = "👨‍✈️ MASTER"
         else:
-            self._role_indicator["text"] = "SLAVE"
-            # self._role_indicator["background"] = self._default_btn_bg
+            self._role_indicator["text"] = ""
 
     def shutdown(self):
         if self._light.is_alive():
