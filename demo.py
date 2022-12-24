@@ -3,7 +3,6 @@
 import tkinter as tk
 from tkinter import Tk, ttk
 import logging
-import argparse
 import lightlib
 import smokesignal
 
@@ -74,14 +73,10 @@ class TextBoxLoggingHandler(logging.Handler):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true")
-    args = parser.parse_args()
-
     root = Tk()
     root_logger = logging.getLogger()
     formatter = logging.Formatter("%(asctime)s %(levelname)8s %(name)s: %(message)s")
-    root_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    root_logger.setLevel(logging.INFO)
 
     frm_bottom = ttk.Frame(root, padding=10)
     frm_bottom.grid(column=0, row=1)
@@ -109,7 +104,17 @@ def main():
         for widget in light_widgets:
             widget.shutdown()
 
+    debug_val = tk.IntVar(frm, 0)
+
+    def toggle_log_level():
+        nonlocal root_logger
+        nonlocal debug_val
+        root_logger.setLevel(logging.DEBUG if debug_val.get() == 1 else logging.INFO)
+
     ttk.Button(frm, text="Quit", command=shutdown).grid(column=5, row=0)
+    debug_chk = ttk.Checkbutton(frm, text="debug", command=toggle_log_level,
+                                variable=debug_val)
+    debug_chk.grid(column=5, row=1)
     root.mainloop()
 
 
