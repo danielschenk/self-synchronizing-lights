@@ -70,19 +70,17 @@ class TextBoxLoggingHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         self._widget.insert(tk.END, self.format(record) + "\n")
+        self._widget.see(tk.END)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--debug")
+    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     root = Tk()
     root_logger = logging.getLogger()
-    handler = logging.StreamHandler()
     formatter = logging.Formatter("%(asctime)s %(levelname)8s %(name)s: %(message)s")
-    handler.setFormatter(formatter)
-    root_logger.addHandler(handler)
     root_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     frm_bottom = ttk.Frame(root, padding=10)
