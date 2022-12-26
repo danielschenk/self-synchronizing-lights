@@ -11,7 +11,7 @@ class LightWidget:
     def __init__(self, master, light: lightlib.Light):
         self.frame = ttk.Frame(master, padding=10)
         self.frame.grid()
-        self._label = ttk.Label(self.frame, text=light.signal_name)
+        self._label = ttk.Label(self.frame, text=light.name)
         self._label.grid(column=0, row=0)
 
         self._indicator = ttk.Label(self.frame)
@@ -46,9 +46,9 @@ class LightWidget:
         self._toggle_button["state"] = "enabled"
         self._toggle_button["text"] = "disable"
 
-    def _on_light_state_change(self, is_on):
+    def _on_light_state_change(self, is_on, is_master):
         self._indicator["text"] = "🔴" if is_on else "⚪️"
-        self._role_indicator["text"] = "👨‍✈️ MASTER" if self._light.is_master else ""
+        self._role_indicator["text"] = "👨‍✈️ MASTER" if is_master else ""
 
     def shutdown(self):
         if self._light.is_alive():

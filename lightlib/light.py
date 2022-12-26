@@ -9,22 +9,21 @@ class Light(threading.Thread):
     PERIOD = 1.0
     _next_id = 0
 
-    def __init__(self, id=None):
-        super().__init__()
+    def __init__(self, name=None):
+        if not name:
+            name = f"light-{self._generate_id()}"
+        super().__init__(name=name)
         self.daemon = True
         self._sync = threading.Event()
         self._stop_flag = threading.Event()
         self._lock = threading.Lock()
         self._is_enabled = True
         self._was_enabled = True
-        if not id:
-            id = self._generate_id()
-        self._id = id
 
         self._is_master = False
         self._is_on = False
 
-        self._logger = logging.getLogger(f"light {self._id}")
+        self._logger = logging.getLogger(self.name)
 
         smokesignal.on("sync", self._on_sync)
 
@@ -80,7 +79,7 @@ class Light(threading.Thread):
             if self._sync.wait(self.PERIOD / 2):
                 self._logger.warn("collision detected, degrading to slave")
                 smokesignal.emit("master-collision-detected",
-                                 self._id)
+                                 self.name)
                 self._is_master = False
             else:
                 smokesignal.emit("sync")
@@ -109,6 +108,9 @@ class Light(threading.Thread):
                 self._blink(self.PERIOD / 2 - arbitration_timeout)
         self._sync.clear()
 
+    def _notify_state(self):
+        smokesignal.emit(self.signal_name, self._is_on, self._is_master)
+
     def _blink(self, shine_time=None):
         if not shine_time:
             shine_time = self.PERIOD / 2
@@ -124,7 +126,7 @@ class Light(threading.Thread):
     @is_on.setter
     def is_on(self, state):
         self._is_on = state
-        smokesignal.emit(self.signal_name, state)
+        self._notify_state()
 
     @property
     def is_master(self) -> bool:
@@ -132,7 +134,7 @@ class Light(threading.Thread):
 
     @property
     def signal_name(self):
-        return f"light-{self._id}"
+        return self.name
 
     def stop(self):
         self._stop_flag.set()
