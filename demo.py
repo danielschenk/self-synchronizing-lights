@@ -14,7 +14,7 @@ class LightWidget:
         self._label = ttk.Label(self.frame, text=light.name)
         self._label.grid(column=0, row=0)
 
-        self._indicator = ttk.Label(self.frame)
+        self._indicator = ttk.Label(self.frame, text="⚪️")
         self._indicator.grid(column=0, row=1)
 
         self._role_indicator = ttk.Label(self.frame)
