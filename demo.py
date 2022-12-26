@@ -85,7 +85,7 @@ def main():
     for row in range(3):
         for column in range(3):
             light_frame = ttk.Frame(frm, padding=10)
-            light = lightlib.Light()
+            light = lightlib.Light(period=2)
             light_widgets.append(LightWidget(light_frame, light))
             light_frame.grid(column=column, row=row)
 

@@ -6,12 +6,14 @@ import smokesignal
 
 
 class Light(threading.Thread):
-    PERIOD = 1.0
+    DEFAULT_PERIOD = 1.0
     _next_id = 0
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, period=None):
         if not name:
             name = f"light-{self._generate_id()}"
+        if period is None:
+            period = self.DEFAULT_PERIOD
         super().__init__(name=name)
         self.daemon = True
         self._sync = threading.Event()
@@ -22,6 +24,8 @@ class Light(threading.Thread):
 
         self._is_master = False
         self._is_on = False
+
+        self.period = period
 
         self._logger = logging.getLogger(self.name)
 
@@ -76,7 +80,7 @@ class Light(threading.Thread):
         if self._is_master:
             # check for collision
             # also, use this for timing the sync
-            if self._sync.wait(self.PERIOD / 2):
+            if self._sync.wait(self.period / 2):
                 self._logger.warn("collision detected, degrading to slave")
                 smokesignal.emit("master-collision-detected",
                                  self.name)
@@ -88,10 +92,10 @@ class Light(threading.Thread):
             arbitration_timeout = random.random() / 100 + 0.005
             if first_cycle:
                 # allow to get back in phase
-                timeout = self.PERIOD + 0.1
+                timeout = self.period + 0.1
                 self._logger.debug("first cycle, waiting period to get in phase...")
             else:
-                timeout = self.PERIOD / 2 + arbitration_timeout
+                timeout = self.period / 2 + arbitration_timeout
             if self._sync.wait(timeout):
                 self._blink()
             else:
@@ -105,7 +109,7 @@ class Light(threading.Thread):
                                       "but another light did in the meantime "
                                       "(collision avoidance)")
                 # compensate for extra delay, to stay in phase
-                self._blink(self.PERIOD / 2 - arbitration_timeout)
+                self._blink(self.period / 2 - arbitration_timeout)
         self._sync.clear()
 
     def _notify_state(self):
@@ -113,7 +117,7 @@ class Light(threading.Thread):
 
     def _blink(self, shine_time=None):
         if not shine_time:
-            shine_time = self.PERIOD / 2
+            shine_time = self.period / 2
 
         self.is_on = True
         time.sleep(shine_time)
