@@ -46,16 +46,9 @@ class LightWidget:
         self._toggle_button["state"] = "enabled"
         self._toggle_button["text"] = "disable"
 
-    def _on_light_state_change(self, state):
-        if state:
-            self._indicator["text"] = "🔴"
-        else:
-            self._indicator["text"] = "⚪️"
-
-        if self._light.is_master:
-            self._role_indicator["text"] = "👨‍✈️ MASTER"
-        else:
-            self._role_indicator["text"] = ""
+    def _on_light_state_change(self, is_on):
+        self._indicator["text"] = "🔴" if is_on else "⚪️"
+        self._role_indicator["text"] = "👨‍✈️ MASTER" if self._light.is_master else ""
 
     def shutdown(self):
         if self._light.is_alive():
