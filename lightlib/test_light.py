@@ -19,8 +19,8 @@ class Factory:
     def __init__(self):
         self.lights = []
 
-    def get_light(self, id=None):
-        newlight = light.Light(id)
+    def get_light(self, name=None):
+        newlight = light.Light(name=name)
         self.lights.append(newlight)
         return newlight
 
@@ -72,9 +72,9 @@ class TestLight:
         event = threading.Event()
         state = None
 
-        def _on_change(new_state):
+        def _on_change(is_on, _):
             nonlocal state
-            state = new_state
+            state = is_on
             event.set()
 
         smokesignal.once(light.signal_name, _on_change)
